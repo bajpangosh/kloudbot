@@ -23,6 +23,7 @@ async function fetchProjects(apiToken) {
         'Authorization': `Bearer ${apiToken}`
       }
     });
+    console.log('Fetched projects:', response.data.projects); // Debugging log
     return response.data.projects;
   } catch (error) {
     console.error('Error fetching projects:', error);
@@ -88,6 +89,11 @@ bot.onText(/\/list/, async (msg) => {
   for (const token of apiTokens) {
     const projects = await fetchProjects(token);
     allProjects = allProjects.concat(projects);
+  }
+
+  if (allProjects.length === 0) {
+    bot.sendMessage(chatId, 'No projects found.');
+    return;
   }
 
   const keyboard = allProjects.map(project => [{ text: project.name, callback_data: `project_${project.id}` }]);
