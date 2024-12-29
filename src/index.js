@@ -3,7 +3,16 @@ const TelegramBot = require('node-telegram-bot-api');
 const { getServerDetails } = require('./hetzner/api');
 
 // Create a bot that uses 'polling' to fetch new updates
-const bot = new TelegramBot(process.env.TELEGRAM_BOT_TOKEN, { polling: true });
+const bot = new TelegramBot(process.env.TELEGRAM_BOT_TOKEN, { 
+  polling: {
+    autoStart: true,
+    interval: 300,
+    params: {
+      timeout: 10
+    }
+  },
+  cancellation: true // Enable promise cancellation manually
+});
 
 bot.onText(/\/start/, (msg) => {
   const chatId = msg.chat.id;
