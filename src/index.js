@@ -47,11 +47,9 @@ bot.onText(/\/status (.+)/, async (msg, match) => {
     servers.forEach(server => {
       const priceInINR = server.server_type.prices[0].price_monthly.gross * 90; // Convert to INR
       const ipv4 = server.public_net && server.public_net.ipv4 ? server.public_net.ipv4.ip : 'N/A';
-      const ipv6 = server.public_net && server.public_net.ipv6 ? server.public_net.ipv6.ip : 'N/A';
       message += `\nName: ${server.name}\n` +
                  `Status: ${server.status}\n` +
                  `IPv4: ${ipv4}\n` +
-                 `IPv6: ${ipv6}\n` +
                  `Monthly Price: ₹${priceInINR.toFixed(2)}\n`;
     });
     bot.sendMessage(chatId, message);
