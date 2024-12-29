@@ -1,14 +1,22 @@
 const axios = require('axios');
 
-const hetznerApi = axios.create({
-  baseURL: 'https://api.hetzner.cloud/v1',
-  headers: {
-    'Authorization': `Bearer ${process.env.HETZNER_API_TOKEN}`,
-  },
-});
+function createHetznerApi(project) {
+  const token = process.env[`HETZNER_API_TOKEN_${project.toUpperCase()}`];
+  if (!token) {
+    throw new Error(`API token for project ${project} not found.`);
+  }
 
-async function getServerDetails() {
+  return axios.create({
+    baseURL: 'https://api.hetzner.cloud/v1',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+    },
+  });
+}
+
+async function getServerDetails(project) {
   try {
+    const hetznerApi = createHetznerApi(project);
     const response = await hetznerApi.get('/servers');
     return response.data.servers;
   } catch (error) {

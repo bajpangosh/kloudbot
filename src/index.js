@@ -9,15 +9,16 @@ bot.onText(/\/start/, (msg) => {
   bot.sendMessage(msg.chat.id, "Welcome to the Hetzner Cloud Management Bot!");
 });
 
-bot.onText(/\/status/, async (msg) => {
+bot.onText(/\/status (.+)/, async (msg, match) => {
   const chatId = msg.chat.id;
+  const project = match[1]; // Extract the project name from the command
   try {
-    const servers = await getServerDetails();
+    const servers = await getServerDetails(project);
     if (servers.length === 0) {
-      bot.sendMessage(chatId, 'No servers found.');
+      bot.sendMessage(chatId, `No servers found for project ${project}.`);
       return;
     }
-    let message = 'Server Details:\n';
+    let message = `Server Details for project ${project}:\n`;
     servers.forEach(server => {
       const priceInINR = server.server_type.prices[0].price_monthly.gross * 90; // Convert to INR
       message += `\nName: ${server.name}\n` +
@@ -28,7 +29,7 @@ bot.onText(/\/status/, async (msg) => {
     });
     bot.sendMessage(chatId, message);
   } catch (error) {
-    bot.sendMessage(chatId, 'Error fetching server details: ' + error.message);
+    bot.sendMessage(chatId, `Error fetching server details for project ${project}: ` + error.message);
   }
 });
 
