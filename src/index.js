@@ -96,7 +96,7 @@ bot.onText(/\/list/, async (msg) => {
     return;
   }
 
-  const keyboard = allProjects.map(project => [{ text: project.name, callback_data: `project_${project.id}` }]);
+  const keyboard = allProjects.map(project => [{ text: project.name, callback_data: `status_${project.id}` }]);
   const options = {
     reply_markup: JSON.stringify({
       inline_keyboard: keyboard
@@ -105,30 +105,19 @@ bot.onText(/\/list/, async (msg) => {
   bot.sendMessage(chatId, 'Choose a project to view details:', options);
 });
 
-// Handling callback queries for interactive commands
+// Handling callback queries for selected projects
 bot.on('callback_query', async (callbackQuery) => {
   const message = callbackQuery.message;
-  const data = callbackQuery.data;
-  if (data.startsWith('status_')) {
-    const projectId = data.split('_')[1]; // Extract project ID
-    try {
-      const servers = await getServerDetails(projectId);
-      let response = `Server Details for project:\n`;
-      servers.forEach(server => {
-        response += `Name: ${server.name}\nStatus: ${server.status}\n`;
-      });
-      bot.sendMessage(message.chat.id, response);
-    } catch (error) {
-      bot.sendMessage(message.chat.id, `Error fetching server details: ${error.message}`);
-    }
-  } else if (data.startsWith('project_')) {
-    const projectId = data.split('_')[1]; // Extract project ID
-    try {
-      // Fetch and display project details (replace with actual logic to fetch project-specific data)
-      bot.sendMessage(message.chat.id, `Details for project ID: ${projectId}`);
-    } catch (error) {
-      bot.sendMessage(message.chat.id, `Error fetching project details: ${error.message}`);
-    }
+  const projectId = callbackQuery.data.split('_')[1]; // Extract project ID
+  try {
+    const servers = await getServerDetails(projectId);
+    let response = `Server Details for project:\n`;
+    servers.forEach(server => {
+      response += `Name: ${server.name}\nStatus: ${server.status}\n`;
+    });
+    bot.sendMessage(message.chat.id, response);
+  } catch (error) {
+    bot.sendMessage(message.chat.id, `Error fetching server details: ${error.message}`);
   }
 });
 
