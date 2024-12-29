@@ -1,0 +1,14 @@
+{
+  "name": "kloudbot",
+  "version": "1.0.0",
+  "description": "A Telegram bot to manage and monitor Hetzner Cloud servers.",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js"
+  },
+  "dependencies": {
+    "axios": "^0.21.1",
+    "dotenv": "^10.0.0",
+    "node-telegram-bot-api": "^0.54.0"
+  }
+}
