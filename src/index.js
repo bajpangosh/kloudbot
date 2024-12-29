@@ -1,5 +1,6 @@
 require('dotenv').config();
 const TelegramBot = require('node-telegram-bot-api');
+const axios = require('axios'); // Import axios
 const { getServerDetails } = require('./hetzner/api');
 
 // Create a bot that uses 'polling' to fetch new updates
@@ -14,11 +15,26 @@ const bot = new TelegramBot(process.env.TELEGRAM_BOT_TOKEN, {
   cancellation: true // Enable promise cancellation manually
 });
 
+// Function to fetch projects
+async function fetchProjects() {
+  try {
+    const response = await axios.get('https://api.hetzner.cloud/v1/projects', {
+      headers: {
+        'Authorization': `Bearer ${process.env.HETZNER_API_TOKEN_PROJECT1}` // Use an appropriate token
+      }
+    });
+    return response.data.projects;
+  } catch (error) {
+    console.error('Error fetching projects:', error);
+    return [];
+  }
+}
+
 bot.onText(/\/start/, (msg) => {
   const chatId = msg.chat.id;
   const welcomeMessage = `Welcome to the Hetzner Cloud Management Bot!\n\n` +
                          `Here are the available commands:\n` +
-                         `/status <project_name> - Get the status of servers for a specific project.\n` +
+                         `/status - Get the status of servers for a specific project.\n` +
                          `/reboot <server_name> - Reboot a specific server.\n` +
                          `/shutdown <server_name> - Shutdown a specific server.\n` +
                          `/start <server_name> - Start a stopped server.\n` +
@@ -32,6 +48,35 @@ bot.onText(/\/start/, (msg) => {
                          `- PROJECT1\n` +
                          `- PROJECT2\n`;
   bot.sendMessage(chatId, welcomeMessage);
+});
+
+// Update the /status command to use dynamic project names
+bot.onText(/\/status/, async (msg) => {
+  const chatId = msg.chat.id;
+  const projects = await fetchProjects();
+  const keyboard = projects.map(project => [{ text: project.name, callback_data: `status_${project.id}` }]);
+  const options = {
+    reply_markup: JSON.stringify({
+      inline_keyboard: keyboard
+    })
+  };
+  bot.sendMessage(chatId, 'Choose a project to view server status:', options);
+});
+
+// Handling callback queries for interactive commands
+bot.on('callback_query', async (callbackQuery) => {
+  const message = callbackQuery.message;
+  const projectId = callbackQuery.data.split('_')[1]; // Extract project ID
+  try {
+    const servers = await getServerDetails(projectId);
+    let response = `Server Details for project:\n`;
+    servers.forEach(server => {
+      response += `Name: ${server.name}\nStatus: ${server.status}\n`;
+    });
+    bot.sendMessage(message.chat.id, response);
+  } catch (error) {
+    bot.sendMessage(message.chat.id, `Error fetching server details: ${error.message}`);
+  }
 });
 
 bot.onText(/\/status (.+)/, async (msg, match) => {
