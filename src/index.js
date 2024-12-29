@@ -23,10 +23,10 @@ async function fetchProjects(apiToken) {
         'Authorization': `Bearer ${apiToken}`
       }
     });
-    console.log('Fetched projects:', response.data.projects); // Debugging log
-    return response.data.projects;
+    console.log('API Response:', response.data); // Log entire API response
+    return response.data.projects || [];
   } catch (error) {
-    console.error('Error fetching projects:', error);
+    console.error('Error fetching projects:', error.response ? error.response.data : error.message);
     return [];
   }
 }
@@ -39,9 +39,10 @@ async function fetchProjectsForStatus() {
         'Authorization': `Bearer ${process.env.HETZNER_API_TOKEN_PROJECT1}` // Use an appropriate token
       }
     });
-    return response.data.projects;
+    console.log('API Response:', response.data); // Log entire API response
+    return response.data.projects || [];
   } catch (error) {
-    console.error('Error fetching projects:', error);
+    console.error('Error fetching projects:', error.response ? error.response.data : error.message);
     return [];
   }
 }
@@ -111,12 +112,14 @@ bot.on('callback_query', async (callbackQuery) => {
   const projectId = callbackQuery.data.split('_')[1]; // Extract project ID
   try {
     const servers = await getServerDetails(projectId);
+    console.log('API Response:', servers); // Log entire API response
     let response = `Server Details for project:\n`;
     servers.forEach(server => {
       response += `Name: ${server.name}\nStatus: ${server.status}\n`;
     });
     bot.sendMessage(message.chat.id, response);
   } catch (error) {
+    console.error('Error fetching server details:', error.response ? error.response.data : error.message);
     bot.sendMessage(message.chat.id, `Error fetching server details: ${error.message}`);
   }
 });
@@ -126,6 +129,7 @@ bot.onText(/\/status (.+)/, async (msg, match) => {
   const project = match[1]; // Extract the project name from the command
   try {
     const servers = await getServerDetails(project);
+    console.log('API Response:', servers); // Log entire API response
     if (servers.length === 0) {
       bot.sendMessage(chatId, `No servers found for project ${project}.`);
       return;
@@ -141,6 +145,7 @@ bot.onText(/\/status (.+)/, async (msg, match) => {
     });
     bot.sendMessage(chatId, message);
   } catch (error) {
+    console.error('Error fetching server details for project:', error.response ? error.response.data : error.message);
     bot.sendMessage(chatId, `Error fetching server details for project ${project}: ` + error.message);
   }
 });
