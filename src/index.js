@@ -61,6 +61,7 @@ bot.onText(/\/status (.+)/, async (msg, match) => {
 bot.on('message', (msg) => {
   console.log('Received message:', msg.text); // Debugging log
   const chatId = msg.chat.id;
-  // Send a default message for unrecognized commands
-  bot.sendMessage(chatId, "I didn't understand that command. Please try again.");
+  if (!msg.text.startsWith('/')) {
+    bot.sendMessage(chatId, "I didn't understand that command. Please try again.");
+  }
 });
