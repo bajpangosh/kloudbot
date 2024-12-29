@@ -15,8 +15,23 @@ const bot = new TelegramBot(process.env.TELEGRAM_BOT_TOKEN, {
   cancellation: true // Enable promise cancellation manually
 });
 
+// Function to fetch projects using API tokens from .env
+async function fetchProjects(apiToken) {
+  try {
+    const response = await axios.get('https://api.hetzner.cloud/v1/projects', {
+      headers: {
+        'Authorization': `Bearer ${apiToken}`
+      }
+    });
+    return response.data.projects;
+  } catch (error) {
+    console.error('Error fetching projects:', error);
+    return [];
+  }
+}
+
 // Function to fetch projects
-async function fetchProjects() {
+async function fetchProjectsForStatus() {
   try {
     const response = await axios.get('https://api.hetzner.cloud/v1/projects', {
       headers: {
@@ -43,7 +58,8 @@ bot.onText(/\/start/, (msg) => {
                          `/resize <server_name> <new_plan> - Resize a server to a new plan.\n` +
                          `/add_user <username> <role> - Add a new user to the project.\n` +
                          `/remove_user <username> - Remove a user from the project.\n` +
-                         `/project - Provide details about the Hetzner project.\n\n` +
+                         `/project - Provide details about the Hetzner project.\n` +
+                         `/list - List all projects.\n\n` +
                          `Connected Projects:\n` +
                          `- PROJECT1\n` +
                          `- PROJECT2\n`;
@@ -53,7 +69,7 @@ bot.onText(/\/start/, (msg) => {
 // Update the /status command to use dynamic project names
 bot.onText(/\/status/, async (msg) => {
   const chatId = msg.chat.id;
-  const projects = await fetchProjects();
+  const projects = await fetchProjectsForStatus();
   const keyboard = projects.map(project => [{ text: project.name, callback_data: `status_${project.id}` }]);
   const options = {
     reply_markup: JSON.stringify({
@@ -63,19 +79,50 @@ bot.onText(/\/status/, async (msg) => {
   bot.sendMessage(chatId, 'Choose a project to view server status:', options);
 });
 
+// List command to show projects
+bot.onText(/\/list/, async (msg) => {
+  const chatId = msg.chat.id;
+  const apiTokens = [process.env.HETZNER_API_TOKEN_PROJECT1, process.env.HETZNER_API_TOKEN_PROJECT2]; // Add more if needed
+  let allProjects = [];
+
+  for (const token of apiTokens) {
+    const projects = await fetchProjects(token);
+    allProjects = allProjects.concat(projects);
+  }
+
+  const keyboard = allProjects.map(project => [{ text: project.name, callback_data: `project_${project.id}` }]);
+  const options = {
+    reply_markup: JSON.stringify({
+      inline_keyboard: keyboard
+    })
+  };
+  bot.sendMessage(chatId, 'Choose a project to view details:', options);
+});
+
 // Handling callback queries for interactive commands
 bot.on('callback_query', async (callbackQuery) => {
   const message = callbackQuery.message;
-  const projectId = callbackQuery.data.split('_')[1]; // Extract project ID
-  try {
-    const servers = await getServerDetails(projectId);
-    let response = `Server Details for project:\n`;
-    servers.forEach(server => {
-      response += `Name: ${server.name}\nStatus: ${server.status}\n`;
-    });
-    bot.sendMessage(message.chat.id, response);
-  } catch (error) {
-    bot.sendMessage(message.chat.id, `Error fetching server details: ${error.message}`);
+  const data = callbackQuery.data;
+  if (data.startsWith('status_')) {
+    const projectId = data.split('_')[1]; // Extract project ID
+    try {
+      const servers = await getServerDetails(projectId);
+      let response = `Server Details for project:\n`;
+      servers.forEach(server => {
+        response += `Name: ${server.name}\nStatus: ${server.status}\n`;
+      });
+      bot.sendMessage(message.chat.id, response);
+    } catch (error) {
+      bot.sendMessage(message.chat.id, `Error fetching server details: ${error.message}`);
+    }
+  } else if (data.startsWith('project_')) {
+    const projectId = data.split('_')[1]; // Extract project ID
+    try {
+      // Fetch and display project details (replace with actual logic to fetch project-specific data)
+      bot.sendMessage(message.chat.id, `Details for project ID: ${projectId}`);
+    } catch (error) {
+      bot.sendMessage(message.chat.id, `Error fetching project details: ${error.message}`);
+    }
   }
 });
 
